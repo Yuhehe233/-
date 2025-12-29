@@ -1,0 +1,31 @@
+
+{
+  "name": "好享省",
+  "short_name": "好享省",
+  "description": "您的智能省钱管家，AI精准计算全网最优方案",
+  "categories": ["shopping", "finance"],
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2331/2331970.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#f97316",
+  "shortcuts": [
+    {
+      "name": "省钱搜",
+      "url": "/?tab=search",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2331/2331970.png", "sizes": "192x192" }]
+    }
+  ],
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
