@@ -1,37 +1,51 @@
 
-const CACHE_NAME = 'haoxiangsheng-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'haoxiangsheng-v3';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/metadata.json',
-  'https://cdn-icons-png.flaticon.com/512/2331/2331970.png'
+  'https://cdn.tailwindcss.com'
 ];
 
-// 安装时缓存静态资源
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
+  self.skipWaiting();
 });
 
-// 拦截请求，优先使用缓存
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});
-
-// 激活时清理旧缓存
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
-      );
+    caches.keys().then((keys) => Promise.all(
+      keys.map((key) => {
+        if (key !== CACHE_NAME) return caches.delete(key);
+      })
+    ))
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  
+  // 对于本地模块和 API 调用，不使用缓存，确保最新
+  if (event.request.url.includes(location.origin)) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((response) => {
+        if (response.status === 200 && (
+          event.request.url.includes('cdn') || 
+          event.request.url.includes('fonts')
+        )) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return response;
+      });
     })
   );
 });
