@@ -1,8 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { DealAnalysisResponse, HomeRecommendation } from "../types";
+import { DealAnalysisResponse, HomeRecommendation } from "../types.ts";
 
-// 确保在浏览器环境下安全获取 API KEY
 const getApiKey = () => {
   return (typeof process !== 'undefined' && process.env?.API_KEY) || (window as any).process?.env?.API_KEY || "";
 };
@@ -11,7 +10,7 @@ export const analyzeDeal = async (query: string): Promise<DealAnalysisResponse> 
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `你是省钱专家“好享省”AI。分析需求：${query}`,
+    contents: `你是省钱专家“好享省”AI。详细分析该产品的全网省钱方案、当前价、历史低价、凑单建议、预测未来大促价等信息。需求：${query}`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -68,7 +67,7 @@ export const getHomeRecommendations = async (): Promise<HomeRecommendation[]> =>
   const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: '生成8个近期性价比商品推荐。',
+    contents: '生成8个近期性价比极高的潮流数码、时尚、家电类商品推荐。',
     config: {
       responseMimeType: "application/json",
       responseSchema: {
