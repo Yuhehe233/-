@@ -1,17 +1,16 @@
 
-const CACHE_NAME = 'haoxiangsheng-v3';
+const CACHE_NAME = 'haoxiangsheng-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/metadata.json',
-  'https://cdn.tailwindcss.com'
+  '/metadata.json'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -26,26 +25,8 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  
-  // 对于本地模块和 API 调用，不使用缓存，确保最新
-  if (event.request.url.includes(location.origin)) {
-    return;
-  }
-
+  // 绕过所有缓存，优先获取网络资源，解决发布后无法即时更新的问题
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-      return fetch(event.request).then((response) => {
-        if (response.status === 200 && (
-          event.request.url.includes('cdn') || 
-          event.request.url.includes('fonts')
-        )) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
-        }
-        return response;
-      });
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
