@@ -1,16 +1,17 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { DealAnalysisResponse, HomeRecommendation } from "../types.ts";
+import { DealAnalysisResponse, HomeRecommendation } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// 确保在浏览器环境下安全获取 API KEY
+const getApiKey = () => {
+  return (typeof process !== 'undefined' && process.env?.API_KEY) || (window as any).process?.env?.API_KEY || "";
+};
 
 export const analyzeDeal = async (query: string): Promise<DealAnalysisResponse> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `你是省钱专家“好享省”AI。分析以下需求，给出【两个对比方案】：
-    1. 方案A（立即购买）：现阶段可行、且目前全网能做到的最低到手价。
-    2. 方案B（远期省钱）：基于历史大促（双11、618等）预测的未来可能出现的极致最低价。
-    对比两者的差值并给出决策建议。需求：${query}`,
+    contents: `你是省钱专家“好享省”AI。分析需求：${query}`,
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -23,8 +24,6 @@ export const analyzeDeal = async (query: string): Promise<DealAnalysisResponse> 
               originalPrice: { type: Type.NUMBER },
               currentPrice: { type: Type.NUMBER },
               platform: { type: Type.STRING },
-              imageUrl: { type: Type.STRING },
-              description: { type: Type.STRING },
             },
             required: ["name", "originalPrice", "currentPrice", "platform"],
           },
@@ -33,15 +32,11 @@ export const analyzeDeal = async (query: string): Promise<DealAnalysisResponse> 
             items: {
               type: Type.OBJECT,
               properties: {
-                type: { type: Type.STRING, enum: ["immediate", "future"] },
+                type: { type: Type.STRING },
                 label: { type: Type.STRING },
-                isActionable: { type: Type.BOOLEAN },
                 steps: { type: Type.ARRAY, items: { type: Type.STRING } },
-                totalSavings: { type: Type.NUMBER },
                 finalPrice: { type: Type.NUMBER },
-                explanation: { type: Type.STRING },
-                coupons: { type: Type.ARRAY, items: { type: Type.STRING } },
-                waitTime: { type: Type.STRING },
+                totalSavings: { type: Type.NUMBER },
               },
               required: ["type", "label", "steps", "finalPrice", "totalSavings"],
             }
@@ -51,55 +46,29 @@ export const analyzeDeal = async (query: string): Promise<DealAnalysisResponse> 
             properties: {
               nextEventName: { type: Type.STRING },
               expectedPrice: { type: Type.NUMBER },
-              expectedDrop: { type: Type.NUMBER },
-              buyNowOrWait: { type: Type.STRING, enum: ["buy_now", "wait"] },
+              buyNowOrWait: { type: Type.STRING },
               reasoning: { type: Type.STRING },
               confidence: { type: Type.NUMBER }
             },
-            required: ["nextEventName", "expectedPrice", "buyNowOrWait", "reasoning", "confidence"]
+            required: ["nextEventName", "expectedPrice", "confidence"]
           },
-          decisionAdvice: { type: Type.STRING, description: "对比两个方案后的综合购买建议" },
-          similarRecommendations: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                price: { type: Type.NUMBER },
-                platform: { type: Type.STRING },
-                advantage: { type: Type.STRING },
-              }
-            }
-          },
-          priceTrends: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                date: { type: Type.STRING },
-                price: { type: Type.NUMBER },
-              }
-            }
-          }
+          decisionAdvice: { type: Type.STRING },
+          priceTrends: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { date: { type: Type.STRING }, price: { type: Type.NUMBER } } } },
+          similarRecommendations: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, price: { type: Type.NUMBER }, platform: { type: Type.STRING } } } }
         },
-        required: ["productDetails", "plans", "pricePrediction", "decisionAdvice", "similarRecommendations", "priceTrends"],
+        required: ["productDetails", "plans", "pricePrediction", "decisionAdvice", "priceTrends", "similarRecommendations"],
       },
     },
   });
 
-  try {
-    const text = response.text;
-    return JSON.parse(text);
-  } catch (error) {
-    console.error("Failed to parse Gemini response:", error);
-    throw new Error("解析省钱方案出错，请稍后再试");
-  }
+  return JSON.parse(response.text);
 };
 
 export const getHomeRecommendations = async (): Promise<HomeRecommendation[]> => {
+  const ai = new GoogleGenAI({ apiKey: getApiKey() });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: '请基于当前主流电商平台（京东、天猫、淘宝）的行情，为“好享省”APP首页生成8个近期性价比极高、质量上乘的商品推荐。涵盖时尚、潮流、家电、数码等领域。',
+    contents: '生成8个近期性价比商品推荐。',
     config: {
       responseMimeType: "application/json",
       responseSchema: {
@@ -108,23 +77,16 @@ export const getHomeRecommendations = async (): Promise<HomeRecommendation[]> =>
           type: Type.OBJECT,
           properties: {
             name: { type: Type.STRING },
-            category: { type: Type.STRING, enum: ["时尚", "潮流", "家电", "数码", "生活"] },
+            category: { type: Type.STRING },
             price: { type: Type.NUMBER },
             originalPrice: { type: Type.NUMBER },
-            platform: { type: Type.STRING, enum: ["京东", "天猫", "淘宝"] },
+            platform: { type: Type.STRING },
             reason: { type: Type.STRING },
             imageSeed: { type: Type.STRING }
-          },
-          required: ["name", "category", "price", "originalPrice", "platform", "reason", "imageSeed"]
+          }
         }
       }
     }
   });
-
-  try {
-    return JSON.parse(response.text);
-  } catch (error) {
-    console.error("Failed to fetch recommendations:", error);
-    return [];
-  }
+  return JSON.parse(response.text);
 };
