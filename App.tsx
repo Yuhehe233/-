@@ -1,12 +1,12 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { Search, Loader2, TrendingUp, HelpCircle, History, Sparkles, X, Download, Share, Heart, User, ShoppingBag, ChevronRight } from 'lucide-react';
-import Header from './components/Header';
-import MobileNav from './components/MobileNav';
-import SavingsDashboard from './components/SavingsDashboard';
-import RecommendationSection from './components/RecommendationSection';
-import { analyzeDeal, getHomeRecommendations } from './services/geminiService';
-import { DealAnalysisResponse, HomeRecommendation } from './types';
+import Header from './components/Header.tsx';
+import MobileNav from './components/MobileNav.tsx';
+import SavingsDashboard from './components/SavingsDashboard.tsx';
+import RecommendationSection from './components/RecommendationSection.tsx';
+import { analyzeDeal, getHomeRecommendations } from './services/geminiService.ts';
+import { DealAnalysisResponse, HomeRecommendation } from './types.ts';
 
 const App: React.FC = () => {
   const [query, setQuery] = useState('');
@@ -23,13 +23,10 @@ const App: React.FC = () => {
   const [recommendations, setRecommendations] = useState<HomeRecommendation[]>([]);
   const [recsLoading, setRecsLoading] = useState(true);
 
-  // 初始化逻辑
   useEffect(() => {
-    // 读取搜索历史
     const savedHistory = localStorage.getItem('hxs_history');
     if (savedHistory) setSearchHistory(JSON.parse(savedHistory));
 
-    // PWA 安装逻辑
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
                        || (window.navigator as any).standalone;
 
@@ -47,7 +44,6 @@ const App: React.FC = () => {
       }
     }
 
-    // 加载首页推荐
     const fetchRecs = async () => {
       try {
         const data = await getHomeRecommendations();
@@ -61,7 +57,6 @@ const App: React.FC = () => {
     fetchRecs();
   }, []);
 
-  // 执行搜索
   const handleSearch = useCallback(async (e?: React.FormEvent, customQuery?: string) => {
     if (e) e.preventDefault();
     const targetQuery = customQuery || query;
@@ -70,13 +65,12 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     setResult(null); 
-    setActiveTab('search'); // 自动跳转到搜索页
+    setActiveTab('search');
 
     try {
       const analysis = await analyzeDeal(targetQuery);
       setResult(analysis);
       
-      // 更新历史记录
       const newHistory = [targetQuery, ...searchHistory.filter(h => h !== targetQuery)].slice(0, 5);
       setSearchHistory(newHistory);
       localStorage.setItem('hxs_history', JSON.stringify(newHistory));
@@ -97,13 +91,11 @@ const App: React.FC = () => {
     setDeferredPrompt(null);
   };
 
-  // 渲染不同的视图
   const renderContent = () => {
     switch(activeTab) {
       case 'home':
         return (
           <div className="space-y-10 animate-in fade-in duration-500">
-            {/* 搜索入口 */}
             <div className="pt-4">
                <h1 className="text-4xl font-black text-gray-900 leading-tight mb-6">
                 想买什么？<br/><span className="text-orange-500">好享省</span> 帮你算。
@@ -114,14 +106,12 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* 精选推荐 */}
             <RecommendationSection 
               recommendations={recommendations} 
               loading={recsLoading} 
               onSelect={(name) => handleSearch(undefined, name)}
             />
 
-            {/* 今日爆料卡片 */}
             <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[2.5rem] p-8 text-white relative overflow-hidden shadow-2xl shadow-orange-100">
               <TrendingUp className="absolute right-[-20px] bottom-[-20px] opacity-10 w-48 h-48" />
               <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">限时情报</span>
@@ -149,7 +139,6 @@ const App: React.FC = () => {
               </button>
             </form>
 
-            {/* 搜索历史 */}
             {!result && !loading && searchHistory.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {searchHistory.map(h => (
@@ -224,7 +213,6 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col pb-32 bg-[#f8fafc]">
       <Header />
 
-      {/* 顶部安装引导 (Android) */}
       {showAndroidInstall && (
         <div className="fixed top-4 left-4 right-4 z-[100] p-4 bg-orange-600 rounded-2xl shadow-2xl flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
@@ -235,7 +223,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* iOS 安装指引卡片 */}
       {showIosInstall && (
         <div className="fixed bottom-24 left-4 right-4 z-[100] p-6 bg-white border-2 border-orange-500 rounded-[2.5rem] shadow-2xl animate-in slide-in-from-bottom-10">
           <button onClick={() => setShowIosInstall(false)} className="absolute top-4 right-4 text-gray-400"><X size={20}/></button>
